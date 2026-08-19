@@ -22,9 +22,17 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Extract TaxoTool source
+        shell: bash
         run: |
+          set -e
           mkdir -p app
-          unzip -q "TaxoTool_BEES_LISTO_PARA_PUBLICAR (1).zip" -d app
+          ZIP_FILE=$(find . -maxdepth 1 -type f -name 'TaxoTool_BEES_LISTO_PARA_PUBLICAR*.zip' | head -n 1)
+          if [ -z "$ZIP_FILE" ]; then
+            echo "No se encontró el ZIP de TaxoTool"
+            exit 1
+          fi
+          echo "Usando: $ZIP_FILE"
+          unzip -q "$ZIP_FILE" -d app
 
       - name: Setup Node
         uses: actions/setup-node@v4
