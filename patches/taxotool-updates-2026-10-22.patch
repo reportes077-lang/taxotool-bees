@@ -1,0 +1,242 @@
+--- a/src/App.tsx
++++ b/src/App.tsx
+@@ -81,7 +81,7 @@
+   const [copiedExcel, setCopiedExcel] = useState(false);
+   const [copiedSummary, setCopiedSummary] = useState(false);
+   const [currentSkuIndex, setCurrentSkuIndex] = useState(0);
+-  const [selectedOptionalDeeplink, setSelectedOptionalDeeplink] = useState("");
++  const [selectedOptionalDeeplink, setSelectedOptionalDeeplink] = useState(OPTIONAL_DEEPLINKS["Descuentos"]);
+   const [copiedOptional, setCopiedOptional] = useState(false);
+   const [darkMode, setDarkMode] = useState(() => {
+     if (typeof window !== 'undefined') {
+@@ -291,11 +291,13 @@
+     }
+ 
+     // Channel Tags
+-    if (selectedFormats.length === 1 && !isX2) {
+-      tags.push({ text: `channel/${selectedFormats[0].replace(" ", "_")}`.toLowerCase(), type: 'standard' });
+-    } else if (selectedFormats.length > 1 || isX2) {
++    // Multi-format and X2 are canvases, but we also keep every selected channel tag.
++    if (selectedFormats.length > 1 || isX2) {
+       tags.push({ text: "channel/canvas", type: 'standard' });
+     }
++    selectedFormats.forEach(format => {
++      tags.push({ text: `channel/${format.replace(/\s+/g, "_")}`.toLowerCase(), type: 'standard' });
++    });
+ 
+     // SKU Tags
+     skus.filter(s => s.trim() !== "").forEach(s => {
+@@ -375,6 +377,33 @@
+       .filter(Boolean) as SkuInfo[];
+   };
+ 
++  const getFrictionLiquid = () => {
++    const frictionBlocks: string[] = [];
++
++    if (selectedFormats.includes("Inapp") || selectedFormats.includes("Inapp HTML")) {
++      frictionBlocks.push(`{% assign friction_inapp = custom_attribute.\${friction_inapp_aon} | default: 0 | plus: 0 %}
++{% if preview_mode == false and friction_inapp == 1 %}
++  {% abort_message('Usuario saturado InApp') %}
++{% endif %}`);
++    }
++
++    if (selectedFormats.includes("Push")) {
++      frictionBlocks.push(`{% assign friction_push = custom_attribute.\${friction_push_aon} | default: 0 | plus: 0 %}
++{% if friction_push == 1 %}
++  {% abort_message('Usuario saturado Push') %}
++{% endif %}`);
++    }
++
++    if (selectedFormats.includes("Slideup")) {
++      frictionBlocks.push(`{% assign friction_slideup = custom_attribute.\${friction_slideup_aon} | default: 0 | plus: 0 %}
++{% if friction_slideup == 1 %}
++  {% abort_message('Usuario saturado SlideUp') %}
++{% endif %}`);
++    }
++
++    return frictionBlocks.join("\n\n");
++  };
++
+   const generateLiquidCode = (selectedSkus: SkuInfo[]) => {
+     const skuVal = selectedSkus.length > 0 ? selectedSkus.map(s => s.sku).join(";") : "N/A";
+     const catVal = (category || "N/A").toUpperCase();
+@@ -386,9 +415,11 @@
+       `{% assign subchannel = custom_attribute.\${bees_subcanal} %}\n` +
+       `{% assign bees_unidadnegocio = custom_attribute.\${bees_unidadnegocio} %}`;
+ 
+-    // CASE 1: COMMERCIAL
++    let baseLiquid = "";
++
++    // CASE 1: COMMERCIAL / TRADE
+     if (primaryObjective === "commercial") {
+-      return `{% assign sku = "${skuVal}" %}\n` +
++      baseLiquid = `{% assign sku = "${skuVal}" %}\n` +
+         `{% assign priority = "N/A" %}\n` +
+         `{% assign category = "${catVal}" %}\n` +
+         `{% assign promo = "N/A" %}\n` +
+@@ -397,11 +428,9 @@
+         `${commonAttributes}\n\n` +
+         `XXXXX\n\n` +
+         `{{content_blocks.\${message_extras_trade25}}}`;
+-    }
+-
+-    // CASE 3: MARKETPLACE CAMPAIGNS (when not commercial but type is marketplace)
+-    if (campaignType === "marketplace") {
+-      return `${commonAttributes}\n` +
++    } else if (campaignType === "marketplace") {
++      // CASE 2: MARKETPLACE CAMPAIGNS
++      baseLiquid = `${commonAttributes}\n` +
+         `{% assign marca = "N/A" %}\n` +
+         `{% assign partner = "N/A" %}\n` +
+         `{% assign automated = 1 %}\n` +
+@@ -409,16 +438,19 @@
+         `{% assign ident = "N/A" %}\n\n` +
+         `XXXXX\n\n` +
+         `{{content_blocks.\${message_extras_marketplace}}}`;
++    } else {
++      // CASE 3: NORMAL AWARENESS
++      baseLiquid = `${commonAttributes}\n` +
++        `{% assign automated = 1 %}\n` +
++        `{% assign personalized = 1 %}\n` +
++        `{% assign ident = "N/A" %}\n` +
++        `{% assign marca = "N/A" %}\n\n` +
++        `XXXXX\n\n` +
++        `{{content_blocks.\${message_extras_awareness}}}`;
+     }
+ 
+-    // CASE 2: NORMAL AWARENESS
+-    return `${commonAttributes}\n` +
+-      `{% assign automated = 1 %}\n` +
+-      `{% assign personalized = 1 %}\n` +
+-      `{% assign ident = "N/A" %}\n` +
+-      `{% assign marca = "N/A" %}\n\n` +
+-      `XXXXX\n\n` +
+-      `{{content_blocks.\${message_extras_awareness}}}`;
++    const frictionLiquid = getFrictionLiquid();
++    return frictionLiquid ? `${baseLiquid}\n\n${frictionLiquid}` : baseLiquid;
+   };
+ 
+   const generateSummary = () => {
+@@ -494,14 +526,22 @@
+       `${b("MESSAGE EXTRA")}\n${liquidText}`
+     ];
+ 
++    if (selectedFormats.some(format => ["Inapp", "Inapp HTML", "Slideup"].includes(format))) {
++      summaryParts.push(`${b("STORE ID BEES:")} 4a9296fb-a28c-46e1-b71f-75a9707980be`);
++    }
++
++    if (selectedFormats.includes("Email")) {
++      summaryParts.push(`${b("FOOTER MAIL:")}\n<div class="our-class">{{\${email_footer}}} </div>`);
++    }
++
+     if (selectedFormats.includes("WhatsApp")) {
+       summaryParts.push(`${b("LINK DINÁMICO (WHATSAPP)")}\nhttps://brz.ai/`);
++      summaryParts.push(`${b("Custom Attribute Opt In:")} whatsapp_ABI_CO_qualified = 1`);
+       summaryParts.push(`${b("NOMBRE PLANTILLA WHATSAPP")}\n${commonPrefix}`);
+     }
+ 
+-    if (selectedOptionalDeeplink) {
+-      summaryParts.push(`${b("DEEPLINK OPCIONAL")}\n${selectedOptionalDeeplink}`);
+-    }
++    const effectiveOptionalDeeplink = selectedOptionalDeeplink || OPTIONAL_DEEPLINKS["Descuentos"];
++    summaryParts.push(`${b("DEEPLINK OPCIONAL")}\n${effectiveOptionalDeeplink}`);
+ 
+     summaryParts.push(`${b("NOMBRE BASE DE DATOS")}\n${commonPrefix} .csv`);
+ 
+@@ -1243,10 +1283,10 @@
+                   <div className="flex gap-2">
+                     <select
+                       value={selectedOptionalDeeplink}
+-                      onChange={(e) => setSelectedOptionalDeeplink(e.target.value)}
++                      onChange={(e) => setSelectedOptionalDeeplink(e.target.value || OPTIONAL_DEEPLINKS["Descuentos"])}
+                       className={`flex-1 border rounded-xl px-3 py-2 text-[10px] outline-none focus:border-[#FFD100]/50 transition-all cursor-pointer ${darkMode ? 'bg-gray-800 border-gray-700 text-gray-200' : 'bg-gray-50 border-gray-200 text-gray-600'}`}
+                     >
+-                      <option value="" className={darkMode ? 'bg-gray-900' : 'bg-[#1A1A1A]'}>Seleccionar recurso...</option>
++                      <option value="" disabled className={darkMode ? 'bg-gray-900' : 'bg-[#1A1A1A]'}>Seleccionar recurso...</option>
+                       {Object.keys(OPTIONAL_DEEPLINKS).sort().map(name => (
+                         <option key={name} value={OPTIONAL_DEEPLINKS[name]} className={darkMode ? 'bg-gray-900' : 'bg-[#1A1A1A]'}>
+                           {name}
+--- a/src/constants.ts
++++ b/src/constants.ts
+@@ -30,7 +30,7 @@
+ 
+ export const BRANDS_BY_CATEGORY: Record<string, string[]> = {
+   "balanced choices": ["Aguila 0", "Cola & Pola", "Corona 0", "Michelob", "Redds"],
+-  "beer": ["Aguila", "Aguila Light", "Azteca", "BBC", "Budweiser", "Club Colombia", "Corona", "Costeña", "Costeña Bacana", "Costeñita", "Kaufmann", "Modelo", "Multibrand", "Nativa", "Pilsen", "Poker", "Stella Artois"],
++  "beer": ["Aguila Original", "Aguila Light", "Azteca", "BBC", "Budweiser", "Club Colombia", "Corona", "Costeña", "Costeña Bacana", "Costeñita", "Kaufmann", "Modelo", "Multibrand", "Nativa", "Pilsen", "Poker", "Stella Artois"],
+   "mktp": [
+     "Absolut", "Advil", "Aguardiente", "Alka Seltzer", "Amarillo", "Amper", "Antioqueño", "Apronax", "Ara", "Aspirina",
+     "Bacardi", "Baileys", "Ballantines", "Bayer", "Beefeater", "Black & White", "Blanco Del Valle", "California", "Camporales",
+@@ -56,7 +56,7 @@
+   "Absolut": "ABS",
+   "Advil": "ADV",
+   "Agua Zalva": "AGZ",
+-  "Aguila": "AGU",
++  "Aguila Original": "AGU",
+   "Aguila 0": "AGZ",
+   "Aguila Light": "AGL",
+   "Aguardiente": "AGU",
+@@ -237,6 +237,7 @@
+   "challenges",
+   "club b",
+   "combos",
++  "corporativo",
+   "credito",
+   "desafios",
+   "dinamica marca",
+--- a/src/lib/skuData.ts
++++ b/src/lib/skuData.ts
+@@ -717,7 +717,7 @@
+     imgBees: "https://cms-prod.global.ssl.fastly.net/media/07-10-2025-upload-3dca5574.png",
+     imgCrudo: "https://braze-images.com/appboy/communication/assets/image_assets/images/69c69abd770da800637a1d22/original.png?1774623421",
+     deeplink: "https://mybees.com.co/products?id=c3N2ZFdXT2tSYVMvOUFQUWlpeEhTZz09OzAwMDAwMDAwMDAwMDAwMjY0MQ==",
+-    deeplinkBrand: "https://mybees.com.co/brands?brandId=650471efac089152eb40d02c",
++    deeplinkBrand: "https://mybees.com.co/brands?brandId=5fc7033c0001f40ce185c6f3",
+   },
+   {
+     sku: "5902",
+@@ -725,7 +725,7 @@
+     imgBees: "https://cms-prod.global.ssl.fastly.net/media/07-10-2025-upload-04c5a711.png",
+     imgCrudo: "https://braze-images.com/appboy/communication/assets/image_assets/images/69c69ab87d53190063fd99cd/original.png?1774623416",
+     deeplink: "https://mybees.com.co/products?id=c3N2ZFdXT2tSYVMvOUFQUWlpeEhTZz09OzAwMDAwMDAwMDAwMDAwNTkwMg==",
+-    deeplinkBrand: "https://mybees.com.co/brands?brandId=650471efac089152eb40d02c",
++    deeplinkBrand: "https://mybees.com.co/brands?brandId=5fc7033c0001f40ce185c6f3",
+   },
+   {
+     sku: "22589",
+@@ -733,7 +733,7 @@
+     imgBees: "https://cms-prod.global.ssl.fastly.net/media/09-25-2025-377f4f51-8163-4a6c-94ea-b0b1abf34f8a-7c9b6e71.png",
+     imgCrudo: "https://braze-images.com/appboy/communication/assets/image_assets/images/69c69ac3ca0d9400632a3261/original.png?1774623427",
+     deeplink: "https://mybees.com.co/products?id=c3N2ZFdXT2tSYVMvOUFQUWlpeEhTZz09OzAwMDAwMDAwMDAwMDAyMjU4OQ==",
+-    deeplinkBrand: "https://mybees.com.co/brands?brandId=650471efac089152eb40d02c",
++    deeplinkBrand: "https://mybees.com.co/brands?brandId=5fc7033c0001f40ce185c6f3",
+   },
+   {
+     sku: "9484",
+@@ -741,7 +741,7 @@
+     imgBees: "https://cms-prod.global.ssl.fastly.net/media/08-26-2025-424907d4-d254-45fa-89b6-d2400623a079-c193fdfe.png",
+     imgCrudo: "https://braze-images.com/appboy/communication/assets/image_assets/images/69c69abb006c9c0063a01973/original.png?1774623418",
+     deeplink: "https://mybees.com.co/products?id=c3N2ZFdXT2tSYVMvOUFQUWlpeEhTZz09OzAwMDAwMDAwMDAwMDAwOTQ4NA==",
+-    deeplinkBrand: "https://mybees.com.co/brands?brandId=650471efac089152eb40d02c",
++    deeplinkBrand: "https://mybees.com.co/brands?brandId=5fc7033c0001f40ce185c6f3",
+   },
+   {
+     sku: "2634",
+@@ -749,7 +749,7 @@
+     imgBees: "https://cms-prod.global.ssl.fastly.net/media/07-10-2025-upload-b18dbe04.png",
+     imgCrudo: "https://braze-images.com/appboy/communication/assets/image_assets/images/69c69ab633a76100639dc76d/original.png?1774623414",
+     deeplink: "https://mybees.com.co/products?id=c3N2ZFdXT2tSYVMvOUFQUWlpeEhTZz09OzAwMDAwMDAwMDAwMDAwMjYzNA==",
+-    deeplinkBrand: "https://mybees.com.co/brands?brandId=650471efac089152eb40d02c",
++    deeplinkBrand: "https://mybees.com.co/brands?brandId=5fc7033c0001f40ce185c6f3",
+   },
+   {
+     sku: "3658",
+@@ -757,7 +757,7 @@
+     imgBees: "https://cms-prod.global.ssl.fastly.net/media/07-16-2025-50ebbcac-ff2f-4db4-a925-50bbac83b410-2b33c03f.png",
+     imgCrudo: "https://braze-images.com/appboy/communication/assets/image_assets/images/69c69ab633a76100639dc76d/original.png?1774623414",
+     deeplink: "https://mybees.com.co/products?id=c3N2ZFdXT2tSYVMvOUFQUWlpeEhTZz09OzAwMDAwMDAwMDAwMDAwMzY1OA==",
+-    deeplinkBrand: "https://mybees.com.co/brands?brandId=650471efac089152eb40d02c",
++    deeplinkBrand: "https://mybees.com.co/brands?brandId=5fc7033c0001f40ce185c6f3",
+   },
+   {
+     sku: "1428",
