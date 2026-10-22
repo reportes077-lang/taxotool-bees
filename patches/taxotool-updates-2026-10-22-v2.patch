@@ -35,20 +35,20 @@
 @@ -468,6 +459,7 @@
      const dateFormatted = getDateFormattedMMM(startDate);
      
-     const commonPrefix = `CO_\${formattedTask}_\${formattedType}_\${formattedName}_\${dateFormatted}`;
+     const commonPrefix = `CO_${formattedTask}_${formattedType}_${formattedName}_${dateFormatted}`;
 +    const compactBannerFileName = commonPrefix.replace(/[^A-Z0-9]/gi, "");
-     const summaryTitle = `✏️ \${formattedTask} | \${formattedType} | \${formattedName} | \${dateFormatted}`;
+     const summaryTitle = `✏️ ${formattedTask} | ${formattedType} | ${formattedName} | ${dateFormatted}`;
  
      const skuDetails = getSelectedSkuDetails();
 @@ -543,7 +535,11 @@
      const effectiveOptionalDeeplink = selectedOptionalDeeplink || OPTIONAL_DEEPLINKS["Descuentos"];
-     summaryParts.push(`\${b("DEEPLINK OPCIONAL")}\n\${effectiveOptionalDeeplink}`);
+     summaryParts.push(`${b("DEEPLINK OPCIONAL")}\n${effectiveOptionalDeeplink}`);
  
--    summaryParts.push(`\${b("NOMBRE BASE DE DATOS")}\n\${commonPrefix} .csv`);
-+    summaryParts.push(`\${b("NOMBRE BASE DE DATOS")}\n\${commonPrefix}`);
+-    summaryParts.push(`${b("NOMBRE BASE DE DATOS")}\n${commonPrefix} .csv`);
++    summaryParts.push(`${b("NOMBRE BASE DE DATOS")}\n${commonPrefix}`);
 +
 +    if (selectedFormats.includes("Banner") || selectedFormats.includes("Banner Ads")) {
-+      summaryParts.push(`\${b("NOMBRE ARCHIVO BANNER")}\n\${compactBannerFileName}`);
++      summaryParts.push(`${b("NOMBRE ARCHIVO BANNER")}\n${compactBannerFileName}`);
 +    }
  
      return summaryParts.join("\n\n---------------------------\n\n");
