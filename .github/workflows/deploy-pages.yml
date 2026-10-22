@@ -36,9 +36,7 @@ jobs:
 
       - name: Apply TaxoTool updates
         working-directory: app/taxotool_bees_src
-        run: |
-          git apply ../../patches/taxotool-updates-2026-10-22.patch
-          git apply ../../patches/taxotool-updates-2026-10-22-v2.patch
+        run: git apply ../../patches/taxotool-consolidated-clean.patch
 
       - name: Setup Node
         uses: actions/setup-node@v4
