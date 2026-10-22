@@ -132,7 +132,7 @@
  export const BRANDS_BY_CATEGORY: Record<string, string[]> = {
    "balanced choices": ["Aguila 0", "Cola & Pola", "Corona 0", "Michelob", "Redds"],
 -  "beer": ["Aguila", "Aguila Light", "Azteca", "BBC", "Budweiser", "Club Colombia", "Corona", "Costeña", "Costeña Bacana", "Costeñita", "Kaufmann", "Modelo", "Multibrand", "Nativa", "Pilsen", "Poker", "Stella Artois"],
-+  "beer": ["Aguila Original", "Aguila Light", "Azteca", "BBC", "Budweiser", "Club Colombia", "Corona", "Costeña", "Costeña Bacana", "Costeñita", "Kaufmann", "Modelo", "Multibrand", "Nativa", "Pilsen", "Poker", "Stella Artois"],
++  "beer": ["Aguila Original", "Aguila Light", "Azteca", "BBC", "Budweiser", "Club Colombia", "Corona", "Costeña", "Costeña Bacana", "Costiñita", "Kaufmann", "Modelo", "Multibrand", "Nativa", "Pilsen", "Poker", "Stella Artois"],
    "mktp": [
      "Absolut", "Advil", "Aguardiente", "Alka Seltzer", "Amarillo", "Amper", "Antioqueño", "Apronax", "Ara", "Aspirina",
      "Bacardi", "Baileys", "Ballantines", "Bayer", "Beefeater", "Black & White", "Blanco Del Valle", "California", "Camporales",
@@ -153,7 +153,7 @@
    "Email",
    "Inapp",
    "Inapp HTML",
-@@ -221,6 +222,7 @@
+@@ -221,6 +2222,7 @@
  
  export const FORMAT_CODES: Record<string, string> = {
    "Banner": "B",
@@ -174,7 +174,7 @@
 @@ -717,7 +717,7 @@
      imgBees: "https://cms-prod.global.ssl.fastly.net/media/07-10-2025-upload-3dca5574.png",
      imgCrudo: "https://braze-images.com/appboy/communication/assets/image_assets/images/69c69abd770da800637a1d22/original.png?1774623421",
-     deeplink: "https://mybees.com.co/products?id=c3N2ZFdXT2tSYVMvOUFQUWlpeEhTZz09OzAwMDAwMDAwMDAwMDAwMjY0MQ==",
+     deeplink: "https://mybees.com.co/products?id=c3N2ZFdXT2tSYVMvOUFQUWlpeEhTZz09OzAwMDAwMDAwMDAwMjY0MQ==",
 -    deeplinkBrand: "https://mybees.com.co/brands?brandId=650471efac089152eb40d02c",
 +    deeplinkBrand: "https://mybees.com.co/brands?brandId=5fc7033c0001f40ce185c6f3",
    },
