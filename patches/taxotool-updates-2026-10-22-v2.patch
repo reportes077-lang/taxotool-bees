@@ -1,0 +1,73 @@
+--- a/src/App.tsx	2026-10-22 21:15:14.817015017 +0000
++++ b/src/App.tsx	2026-10-22 21:15:15.563608875 +0000
+@@ -381,27 +381,18 @@
+     const frictionBlocks: string[] = [];
+ 
+     if (selectedFormats.includes("Inapp") || selectedFormats.includes("Inapp HTML")) {
+-      frictionBlocks.push(`{% assign friction_inapp = custom_attribute.\${friction_inapp_aon} | default: 0 | plus: 0 %}
+-{% if preview_mode == false and friction_inapp == 1 %}
+-  {% abort_message('Usuario saturado InApp') %}
+-{% endif %}`);
++      frictionBlocks.push(`{{content_blocks.\${friction_inapp_aon}}}`);
+     }
+ 
+     if (selectedFormats.includes("Push")) {
+-      frictionBlocks.push(`{% assign friction_push = custom_attribute.\${friction_push_aon} | default: 0 | plus: 0 %}
+-{% if friction_push == 1 %}
+-  {% abort_message('Usuario saturado Push') %}
+-{% endif %}`);
++      frictionBlocks.push(`{{content_blocks.\${friction_push_aon}}}`);
+     }
+ 
+     if (selectedFormats.includes("Slideup")) {
+-      frictionBlocks.push(`{% assign friction_slideup = custom_attribute.\${friction_slideup_aon} | default: 0 | plus: 0 %}
+-{% if friction_slideup == 1 %}
+-  {% abort_message('Usuario saturado SlideUp') %}
+-{% endif %}`);
++      frictionBlocks.push(`{{content_blocks.\${friction_slideup_aon}}}`);
+     }
+ 
+-    return frictionBlocks.join("\n\n");
++    return frictionBlocks.join("\n");
+   };
+ 
+   const generateLiquidCode = (selectedSkus: SkuInfo[]) => {
+@@ -468,6 +459,7 @@
+     const dateFormatted = getDateFormattedMMM(startDate);
+     
+     const commonPrefix = `CO_\${formattedTask}_\${formattedType}_\${formattedName}_\${dateFormatted}`;
++    const compactBannerFileName = commonPrefix.replace(/[^A-Z0-9]/gi, "");
+     const summaryTitle = `✏️ \${formattedTask} | \${formattedType} | \${formattedName} | \${dateFormatted}`;
+ 
+     const skuDetails = getSelectedSkuDetails();
+@@ -543,7 +535,11 @@
+     const effectiveOptionalDeeplink = selectedOptionalDeeplink || OPTIONAL_DEEPLINKS["Descuentos"];
+     summaryParts.push(`\${b("DEEPLINK OPCIONAL")}\n\${effectiveOptionalDeeplink}`);
+ 
+-    summaryParts.push(`\${b("NOMBRE BASE DE DATOS")}\n\${commonPrefix} .csv`);
++    summaryParts.push(`\${b("NOMBRE BASE DE DATOS")}\n\${commonPrefix}`);
++
++    if (selectedFormats.includes("Banner") || selectedFormats.includes("Banner Ads")) {
++      summaryParts.push(`\${b("NOMBRE ARCHIVO BANNER")}\n\${compactBannerFileName}`);
++    }
+ 
+     return summaryParts.join("\n\n---------------------------\n\n");
+   };
+--- a/src/constants.ts	2026-10-22 21:15:14.819613806 +0000
++++ b/src/constants.ts	2026-10-22 21:15:15.562817793 +0000
+@@ -210,6 +210,7 @@
+ 
+ export const FORMATS = [
+   "Banner",
++  "Banner Ads",
+   "Email",
+   "Inapp",
+   "Inapp HTML",
+@@ -221,6 +222,7 @@
+ 
+ export const FORMAT_CODES: Record<string, string> = {
+   "Banner": "B",
++  "Banner Ads": "A",
+   "Email": "E",
+   "Inapp": "I",
+   "Inapp HTML": "H",
